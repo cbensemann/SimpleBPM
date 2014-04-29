@@ -42,7 +42,7 @@ public class BpmProducer {
 //                .registerableItemsFactory(factory)
                 .addAsset(
                         ResourceFactory
-                                .newClassPathResource("rewards-basic.bpmn"),
+                                .newClassPathResource("TaskProcess.bpmn"),
                         ResourceType.BPMN2).get();
         return environment;
     }

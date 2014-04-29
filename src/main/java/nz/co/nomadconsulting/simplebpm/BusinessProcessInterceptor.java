@@ -15,7 +15,10 @@
  */
 package nz.co.nomadconsulting.simplebpm;
 
+import nz.co.nomadconsulting.simplebpm.util.Expressions;
+
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +32,7 @@ import javax.interceptor.InvocationContext;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.runtime.process.ProcessInstance;
 import org.kie.api.task.TaskService;
+import org.kie.api.task.model.Task;
 
 
 @SuppressWarnings("serial")
@@ -43,6 +47,12 @@ public class BusinessProcessInterceptor implements Serializable {
 
     @Inject
     private KieSession kieSession;
+    
+    @Inject
+    private BusinessProcessInstance instance;
+    
+    @Inject
+    private Expressions expressions;
 
 
     @AroundInvoke
@@ -71,7 +81,8 @@ public class BusinessProcessInterceptor implements Serializable {
             log.finest("encountered @StartTask");
             StartTask tag = method.getAnnotation(StartTask.class);
             // Long taskId = getProcessOrTaskId(tag.taskIdParameter(), tag.taskId());
-            // taskService.start(taskId, userId);
+//             taskService.resume(taskId, userId);
+             
         }
         // else if (method.isAnnotationPresent(ResumeProcess.class)) {
         // log.trace("encountered @ResumeProcess");
@@ -95,16 +106,43 @@ public class BusinessProcessInterceptor implements Serializable {
 
 
     private void afterInvocation(InvocationContext invocation) {
-        Method method = invocation.getMethod();
-        if (method.isAnnotationPresent(CreateProcess.class)) {
-            log.finest("encountered @CreateProcess");
-            CreateProcess tag = method.getAnnotation(CreateProcess.class);
-            Map<String, Object> parameters = new HashMap<>();
-            final ProcessInstance processId = kieSession.startProcess(tag.value(), parameters);
+        try {
+            Method method = invocation.getMethod();
+            if (method.isAnnotationPresent(CreateProcess.class)) {
+                log.finest("encountered @CreateProcess");
+                CreateProcess tag = method.getAnnotation(CreateProcess.class);
+                Map<String, Object> parameters = extractParameters(invocation);
+                final ProcessInstance processInstance = kieSession.startProcess(tag.value(), parameters);
+                instance.setProcessId(processInstance.getId());
+            }
+            if (method.isAnnotationPresent(EndTask.class)) {
+                log.finest("encountered @EndTask");
+                final Task taskById = taskService.getTaskById(0);
+                //taskService.complete(businessProcessInstance.getTaskId(), userId, data);
+            }
         }
-        if (method.isAnnotationPresent(EndTask.class)) {
-            log.finest("encountered @EndTask");
-            // taskService.complete(taskId, userId, data);
+        catch (Exception e) {
+            // TODO deal with me
         }
+    }
+
+
+    protected Map<String, Object> extractParameters(InvocationContext ctx) throws IllegalArgumentException, IllegalAccessException {
+        Map<String, Object> variables = new HashMap<String, Object>();
+        for (Field field : ctx.getMethod().getDeclaringClass().getDeclaredFields()) {
+          if (!field.isAnnotationPresent(ProcessVariable.class)) {
+            continue;
+          }
+          field.setAccessible(true);
+          ProcessVariable processStartVariable = field.getAnnotation(ProcessVariable.class);
+          String fieldName = processStartVariable.value();
+          if (fieldName == null || fieldName.length() == 0) {
+            fieldName = field.getName();
+          }
+          Object value = field.get(ctx.getTarget());
+          variables.put(fieldName, value);
+        }
+
+        return variables;
     }
 }
