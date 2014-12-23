@@ -49,6 +49,7 @@ public class BusinessProcessScopeContext implements Context, Serializable {
     }
 
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> T get(final Contextual<T> contextual, final CreationalContext<T> creationalContext) {
         final Bean<T> bean = (Bean<T>) contextual;
@@ -68,6 +69,7 @@ public class BusinessProcessScopeContext implements Context, Serializable {
     }
 
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> T get(final Contextual<T> contextual) {
         final Bean<T> bean = (Bean<T>) contextual;

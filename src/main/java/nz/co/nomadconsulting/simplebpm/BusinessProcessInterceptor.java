@@ -15,7 +15,7 @@
  */
 package nz.co.nomadconsulting.simplebpm;
 
-import nz.co.nomadconsulting.simplebpm.util.Expressions;
+import nz.co.nomadconsulting.simpleessentials.Expressions;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
