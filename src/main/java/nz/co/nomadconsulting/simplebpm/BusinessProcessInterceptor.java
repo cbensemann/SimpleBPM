@@ -1,12 +1,12 @@
 /*
  * Copyright 2014 Nomad Consulting Limited
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,6 +16,10 @@
 package nz.co.nomadconsulting.simplebpm;
 
 import nz.co.nomadconsulting.simpleessentials.Expressions;
+import org.jbpm.services.api.ProcessService;
+import org.kie.api.runtime.process.ProcessInstance;
+import org.kie.api.task.TaskService;
+import org.kie.api.task.model.Task;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
@@ -29,11 +33,6 @@ import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
 
-import org.kie.api.runtime.KieSession;
-import org.kie.api.runtime.process.ProcessInstance;
-import org.kie.api.task.TaskService;
-import org.kie.api.task.model.Task;
-
 
 @SuppressWarnings("serial")
 @Interceptor
@@ -46,11 +45,11 @@ public class BusinessProcessInterceptor implements Serializable {
     private TaskService taskService;
 
     @Inject
-    private KieSession kieSession;
-    
+    private ProcessService processService;
+
     @Inject
     private BusinessProcessInstance instance;
-    
+
     @Inject
     private Expressions expressions;
 
@@ -80,9 +79,9 @@ public class BusinessProcessInterceptor implements Serializable {
         if (method.isAnnotationPresent(StartTask.class)) {
             log.finest("encountered @StartTask");
             StartTask tag = method.getAnnotation(StartTask.class);
-            // Long taskId = getProcessOrTaskId(tag.taskIdParameter(), tag.taskId());
+//             Long taskId = getProcessOrTaskId(tag.taskIdParameter(), tag.taskId());
 //             taskService.resume(taskId, userId);
-             
+
         }
         // else if (method.isAnnotationPresent(ResumeProcess.class)) {
         // log.trace("encountered @ResumeProcess");
@@ -112,13 +111,13 @@ public class BusinessProcessInterceptor implements Serializable {
                 log.finest("encountered @CreateProcess");
                 CreateProcess tag = method.getAnnotation(CreateProcess.class);
                 Map<String, Object> parameters = extractParameters(invocation);
-                final ProcessInstance processInstance = kieSession.startProcess(tag.value(), parameters);
+                final ProcessInstance processInstance = processService.startProcess(tag.value(), parameters);
                 instance.setProcessId(processInstance.getId());
             }
             if (method.isAnnotationPresent(EndTask.class)) {
                 log.finest("encountered @EndTask");
                 final Task taskById = taskService.getTaskById(0);
-                //taskService.complete(businessProcessInstance.getTaskId(), userId, data);
+                taskService.complete(instance.getTaskId(), userId, data);
             }
         }
         catch (Exception e) {
@@ -128,7 +127,7 @@ public class BusinessProcessInterceptor implements Serializable {
 
 
     protected Map<String, Object> extractParameters(InvocationContext ctx) throws IllegalArgumentException, IllegalAccessException {
-        Map<String, Object> variables = new HashMap<String, Object>();
+        Map<String, Object> variables = new HashMap<>();
         for (Field field : ctx.getMethod().getDeclaringClass().getDeclaredFields()) {
           if (!field.isAnnotationPresent(ProcessVariable.class)) {
             continue;

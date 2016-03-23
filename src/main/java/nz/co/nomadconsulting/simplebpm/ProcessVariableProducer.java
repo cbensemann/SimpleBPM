@@ -15,18 +15,46 @@
  */
 package nz.co.nomadconsulting.simplebpm;
 
+import org.jbpm.services.api.RuntimeDataService;
+import org.jbpm.services.api.model.VariableDesc;
+
+import java.lang.reflect.Type;
+import java.util.Collection;
+
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.InjectionPoint;
+import javax.inject.Inject;
 
 
 public class ProcessVariableProducer {
+
+    @Inject
+    private RuntimeDataService runtimeDataService;
+
+    @Inject
+    private BusinessProcessInstance instance;
+
 
     @Produces
     @ProcessVariable
     public Object getProcessVariable(final InjectionPoint ip) {
         final String processVariableName = getVariableName(ip);
 
-        return null; // TODO get from process/task
+        final Collection<VariableDesc> variablesCurrentState = runtimeDataService.getVariablesCurrentState(instance.getProcessId());
+        Object resultingVariable = null;
+        for (VariableDesc variableDesc : variablesCurrentState) {
+            if (variableDesc.getVariableId() == processVariableName) {
+                resultingVariable = variableDesc.getNewValue();
+                break;
+            }
+        }
+
+        return coerceToType(resultingVariable, ip.getType());
+    }
+
+
+    private Object coerceToType(Object resultingVariable, Type type) {
+        return resultingVariable; // TODO do coercion here
     }
 
 

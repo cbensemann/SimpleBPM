@@ -2,16 +2,14 @@ package nz.co.nomadconsulting.simplebpm;
 
 import java.io.Serializable;
 
-import javax.enterprise.context.ConversationScoped;
-
 @SuppressWarnings("serial")
-@ConversationScoped
+@BusinessProcessScoped
 public class BusinessProcessInstance implements Serializable {
 
     private Long processId;
     private Long taskId;
-    
-    
+
+
     public Long getProcessId() {
         return processId;
     }
